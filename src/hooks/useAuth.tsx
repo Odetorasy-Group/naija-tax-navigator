@@ -24,7 +24,6 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  upgradeToPro: (planType: "monthly" | "yearly", transactionId: string, planId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -112,34 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const upgradeToPro = async (
-    planType: "monthly" | "yearly",
-    transactionId: string,
-    planId: string
-  ) => {
-    if (!user) return;
-    
-    const now = new Date();
-    const daysToAdd = planType === "yearly" ? 365 : 30;
-    const subscriptionEndDate = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
-    
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        subscription_status: "pro",
-        last_payment_date: now.toISOString(),
-        plan_type: planType,
-        subscription_end_date: subscriptionEndDate.toISOString(),
-        transaction_id: transactionId,
-        plan_id: planId,
-      })
-      .eq("id", user.id);
-    
-    if (!error) {
-      await refreshProfile();
-    }
-  };
-
   // Check if subscription is active and not expired
   const isExpired = (() => {
     if (!profile?.subscription_end_date) return false;
@@ -161,7 +132,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signOut,
         refreshProfile,
-        upgradeToPro,
       }}
     >
       {children}

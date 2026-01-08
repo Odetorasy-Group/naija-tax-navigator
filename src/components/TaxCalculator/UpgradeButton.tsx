@@ -20,10 +20,15 @@ export function UpgradeButton({ variant = "default" }: UpgradeButtonProps) {
     );
   }
 
+  const handleUpgrade = () => {
+    // Default to monthly plan
+    initiatePayment("152790", 2500, "monthly");
+  };
+
   if (variant === "compact") {
     return (
       <Button
-        onClick={initiatePayment}
+        onClick={handleUpgrade}
         size="sm"
         className="gap-1.5 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
       >
@@ -49,7 +54,7 @@ export function UpgradeButton({ variant = "default" }: UpgradeButtonProps) {
             </div>
           </div>
           <Button
-            onClick={initiatePayment}
+            onClick={handleUpgrade}
             className="gap-2 bg-gradient-to-r from-primary to-primary/80"
           >
             <Crown className="w-4 h-4" />
@@ -62,7 +67,7 @@ export function UpgradeButton({ variant = "default" }: UpgradeButtonProps) {
 
   return (
     <Button
-      onClick={initiatePayment}
+      onClick={handleUpgrade}
       className="gap-2 w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
     >
       <Crown className="w-4 h-4" />

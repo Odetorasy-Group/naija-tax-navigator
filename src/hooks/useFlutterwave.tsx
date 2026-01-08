@@ -10,6 +10,7 @@ interface FlutterwaveConfig {
   amount: number;
   currency: string;
   payment_options: string;
+  payment_plan?: string;
   customer: {
     email: string;
     name: string;
@@ -55,7 +56,11 @@ export function useFlutterwave() {
     });
   }, []);
 
-  const initiatePayment = useCallback(async () => {
+  const initiatePayment = useCallback(async (
+    planId: string = "152790",
+    amount: number = 2500,
+    planType: "monthly" | "yearly" = "monthly"
+  ) => {
     if (!user || !profile) {
       toast({
         title: "Login Required",
@@ -69,28 +74,30 @@ export function useFlutterwave() {
       await loadFlutterwaveScript();
 
       const txRef = `odetorasy-${Date.now()}-${user.id.slice(0, 8)}`;
+      const periodLabel = planType === "yearly" ? "Yearly" : "Monthly";
 
       window.FlutterwaveCheckout({
         public_key: FLW_PUBLIC_KEY,
         tx_ref: txRef,
-        amount: 2500,
+        amount: amount,
         currency: "NGN",
         payment_options: "card,banktransfer,ussd",
+        payment_plan: planId,
         customer: {
           email: profile.email,
           name: profile.email.split("@")[0],
         },
         customizations: {
           title: "Odetorasy Pro",
-          description: "Monthly Pro Subscription",
+          description: `${periodLabel} Pro Subscription`,
           logo: "https://cdn.lovable.dev/logo.png",
         },
         callback: async (response) => {
           if (response.status === "successful") {
-            await upgradeToPro();
+            await upgradeToPro(planType, response.transaction_id.toString(), planId);
             toast({
               title: "Welcome to Pro! 🎉",
-              description: "You now have unlimited access to all features.",
+              description: `You now have ${periodLabel.toLowerCase()} access to all features.`,
             });
           } else {
             toast({

@@ -1,10 +1,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, verif-hash",
 };
+
+// Zod schema for Flutterwave webhook payload validation
+const FlutterwaveChargePayloadSchema = z.object({
+  event: z.string().min(1),
+  data: z.object({
+    status: z.string(),
+    customer: z.object({
+      email: z.string().email(),
+    }),
+    payment_plan: z.union([z.string(), z.number()]).optional().nullable(),
+    id: z.union([z.string(), z.number()]),
+    amount: z.number().positive(),
+  }),
+});
+
+const FlutterwaveCancelPayloadSchema = z.object({
+  event: z.literal("subscription.cancelled"),
+  data: z.object({
+    customer: z.object({
+      email: z.string().email(),
+    }),
+  }),
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -25,32 +49,42 @@ serve(async (req) => {
       });
     }
 
-    const payload = await req.json();
-    console.log("Flutterwave webhook received:", JSON.stringify(payload));
+    const rawPayload = await req.json();
+    console.log("Flutterwave webhook received:", JSON.stringify(rawPayload));
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const event = payload.event;
-    const data = payload.data;
+    const event = rawPayload.event;
 
-    // Handle subscription events
-    if (event === "charge.completed" && data.status === "successful") {
-      // Extract user email and plan info from the transaction
-      const customerEmail = data.customer?.email;
-      const planId = data.payment_plan?.toString();
-      const transactionId = data.id?.toString();
-      const amount = data.amount;
-
-      if (!customerEmail) {
-        console.error("No customer email in webhook data");
-        return new Response(JSON.stringify({ error: "No customer email" }), {
+    // Handle charge.completed events
+    if (event === "charge.completed") {
+      // Validate payload structure
+      const validation = FlutterwaveChargePayloadSchema.safeParse(rawPayload);
+      if (!validation.success) {
+        console.error("Invalid charge payload:", validation.error.errors);
+        return new Response(JSON.stringify({ error: "Invalid payload structure", details: validation.error.errors }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const payload = validation.data;
+      const data = payload.data;
+
+      if (data.status !== "successful") {
+        console.log("Charge not successful, skipping:", data.status);
+        return new Response(JSON.stringify({ received: true, skipped: "not successful" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const customerEmail = data.customer.email;
+      const planId = data.payment_plan?.toString() ?? null;
+      const transactionId = data.id.toString();
+      const amount = data.amount;
 
       // Determine plan type based on amount or plan ID
       const isYearly = planId === "152789" || amount === 25000;
@@ -87,21 +121,29 @@ serve(async (req) => {
 
     // Handle subscription cancellation
     if (event === "subscription.cancelled") {
-      const customerEmail = data.customer?.email;
+      // Validate payload structure
+      const validation = FlutterwaveCancelPayloadSchema.safeParse(rawPayload);
+      if (!validation.success) {
+        console.error("Invalid cancel payload:", validation.error.errors);
+        return new Response(JSON.stringify({ error: "Invalid payload structure", details: validation.error.errors }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-      if (customerEmail) {
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({
-            subscription_status: "free",
-          })
-          .eq("email", customerEmail);
+      const customerEmail = validation.data.data.customer.email;
 
-        if (updateError) {
-          console.error("Error cancelling subscription:", updateError);
-        } else {
-          console.log(`Subscription cancelled for ${customerEmail}`);
-        }
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          subscription_status: "free",
+        })
+        .eq("email", customerEmail);
+
+      if (updateError) {
+        console.error("Error cancelling subscription:", updateError);
+      } else {
+        console.log(`Subscription cancelled for ${customerEmail}`);
       }
     }
 

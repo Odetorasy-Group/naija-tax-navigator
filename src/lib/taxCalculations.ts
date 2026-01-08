@@ -84,8 +84,8 @@ const TAX_BANDS_2021 = [
 
 const RENT_RELIEF_CAP = 500000;
 const RENT_RELIEF_RATE = 0.20;
-const PENSION_RATE = 0.08;
-const NHF_RATE = 0.025;
+export const PENSION_RATE = 0.08;
+export const NHF_RATE = 0.025;
 const LIFE_ASSURANCE_RATE = 0.02;
 const TAX_FREE_THRESHOLD = 800000;
 const CRA_FIXED = 200000; // ₦200,000 fixed component
@@ -267,6 +267,65 @@ export function calculateTax(inputs: TaxInputs): TaxResult {
   };
 }
 
+// Reverse calculator: Find Gross from Target Net
+export function findGrossFromNet(
+  targetMonthlyNet: number,
+  pensionEnabled: boolean = true,
+  nhfEnabled: boolean = true
+): { requiredGross: number; result: TaxResult } {
+  const targetAnnualNet = targetMonthlyNet * 12;
+  
+  // Binary search for the gross salary
+  let low = targetAnnualNet;
+  let high = targetAnnualNet * 3; // Start with a reasonable upper bound
+  let bestGross = targetAnnualNet;
+  let bestResult: TaxResult | null = null;
+  
+  const tolerance = 10; // Within ₦10 margin
+  
+  for (let i = 0; i < 100; i++) {
+    const mid = Math.floor((low + high) / 2);
+    
+    const result = calculateTax({
+      grossSalary: mid,
+      isAnnual: true,
+      annualRent: 0,
+      pensionEnabled,
+      nhfEnabled,
+      lifeAssuranceEnabled: false,
+    });
+    
+    const netDiff = result.annualTakeHome - targetAnnualNet;
+    
+    if (Math.abs(netDiff) <= tolerance) {
+      bestGross = mid;
+      bestResult = result;
+      break;
+    }
+    
+    if (netDiff > 0) {
+      high = mid;
+      bestGross = mid;
+      bestResult = result;
+    } else {
+      low = mid;
+    }
+  }
+  
+  if (!bestResult) {
+    bestResult = calculateTax({
+      grossSalary: bestGross,
+      isAnnual: true,
+      annualRent: 0,
+      pensionEnabled,
+      nhfEnabled,
+      lifeAssuranceEnabled: false,
+    });
+  }
+  
+  return { requiredGross: bestGross, result: bestResult };
+}
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
@@ -281,4 +340,19 @@ export function formatNumber(amount: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+// Currency conversion rates (approximate)
+export const CURRENCY_RATES = {
+  USD: 1550, // 1 USD = ₦1550
+  GBP: 1950, // 1 GBP = ₦1950
+  EUR: 1680, // 1 EUR = ₦1680
+};
+
+export function convertToNGN(amount: number, currency: keyof typeof CURRENCY_RATES): number {
+  return amount * CURRENCY_RATES[currency];
+}
+
+export function convertFromNGN(amount: number, currency: keyof typeof CURRENCY_RATES): number {
+  return amount / CURRENCY_RATES[currency];
 }

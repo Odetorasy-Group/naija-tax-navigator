@@ -15,7 +15,7 @@ export function Footer() {
       </div>
 
       <p className="text-center text-xs text-muted-foreground mt-4">
-        Built with 🇳🇬 for Nigerian taxpayers
+        © {new Date().getFullYear()} Odetoprasy Tax Suite • Built with 🇳🇬 for Nigerian taxpayers
       </p>
     </footer>
   );

@@ -14,7 +14,118 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      employees: {
+        Row: {
+          annual_rent: number
+          created_at: string
+          full_name: string
+          has_nhf: boolean
+          has_pension: boolean
+          id: string
+          insurance_premium: number
+          monthly_gross: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          annual_rent?: number
+          created_at?: string
+          full_name: string
+          has_nhf?: boolean
+          has_pension?: boolean
+          id?: string
+          insurance_premium?: number
+          monthly_gross?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          annual_rent?: number
+          created_at?: string
+          full_name?: string
+          has_nhf?: boolean
+          has_pension?: boolean
+          id?: string
+          insurance_premium?: number
+          monthly_gross?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      global_settings: {
+        Row: {
+          annual_rent: number
+          created_at: string
+          default_nhf_rate: number
+          default_pension_rate: number
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          annual_rent?: number
+          created_at?: string
+          default_nhf_rate?: number
+          default_pension_rate?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          annual_rent?: number
+          created_at?: string
+          default_nhf_rate?: number
+          default_pension_rate?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          last_payment_date: string | null
+          subscription_status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          last_payment_date?: string | null
+          subscription_status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          last_payment_date?: string | null
+          subscription_status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

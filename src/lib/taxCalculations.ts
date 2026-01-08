@@ -15,6 +15,16 @@ export interface TaxBand {
   taxAmount: number;
 }
 
+export interface OldTaxBreakdown {
+  adjustedGross: number;
+  cra: number;
+  chargeableIncome: number;
+  calculatedTax: number;
+  minimumTax: number;
+  finalTax: number;
+  usedMinimumTax: boolean;
+}
+
 export interface TaxResult {
   annualGross: number;
   monthlyGross: number;
@@ -39,10 +49,16 @@ export interface TaxResult {
   
   // Comparison with old law
   oldLawAnnualTax: number;
+  oldLawMonthlyTax: number;
+  oldTaxBreakdown: OldTaxBreakdown;
   taxSavings: number;
+  monthlySavings: number;
+  savingsPercentage: number;
+  isNewLawBetter: boolean;
   
   // Effective rate
   effectiveRate: number;
+  oldEffectiveRate: number;
   
   // Tax-free threshold applied
   isTaxFree: boolean;
@@ -58,45 +74,77 @@ const TAX_BANDS_2026 = [
 ];
 
 const TAX_BANDS_2021 = [
-  { threshold: 300000, rate: 0.07 },
-  { threshold: 300000, rate: 0.11 },
-  { threshold: 500000, rate: 0.15 },
-  { threshold: 500000, rate: 0.19 },
-  { threshold: 1600000, rate: 0.21 },
-  { threshold: Infinity, rate: 0.24 },
+  { threshold: 300000, rate: 0.07, label: "First ₦300k" },
+  { threshold: 300000, rate: 0.11, label: "Next ₦300k" },
+  { threshold: 500000, rate: 0.15, label: "Next ₦500k" },
+  { threshold: 500000, rate: 0.19, label: "Next ₦500k" },
+  { threshold: 1600000, rate: 0.21, label: "Next ₦1.6m" },
+  { threshold: Infinity, rate: 0.24, label: "Above ₦3.2m" },
 ];
 
 const RENT_RELIEF_CAP = 500000;
 const RENT_RELIEF_RATE = 0.20;
 const PENSION_RATE = 0.08;
 const NHF_RATE = 0.025;
-const LIFE_ASSURANCE_RATE = 0.02; // Assumed 2% of gross
+const LIFE_ASSURANCE_RATE = 0.02;
 const TAX_FREE_THRESHOLD = 800000;
+const CRA_FIXED = 200000; // ₦200,000 fixed component
+const CRA_GROSS_RATE = 0.01; // 1% of gross
+const CRA_ADDITIONAL_RATE = 0.20; // 20% of gross
 
-function calculateOldLawTax(chargeableIncome: number): number {
-  // Old 2021 law calculations (simplified - CRA method)
-  // CRA = Higher of ₦200k or 1% of gross + 20% of gross
-  // For simplicity, using the old progressive bands without CRA
+function calculateCRA(annualGross: number): number {
+  // CRA = Higher of (₦200,000 OR 1% of Gross) + 20% of Gross
+  const fixedOrPercent = Math.max(CRA_FIXED, annualGross * CRA_GROSS_RATE);
+  const additional = annualGross * CRA_ADDITIONAL_RATE;
+  return fixedOrPercent + additional;
+}
+
+function calculateOldLawTax(
+  annualGross: number,
+  pensionDeduction: number,
+  nhfDeduction: number
+): OldTaxBreakdown {
+  // Step 1: Calculate Adjusted Gross (Gross - Pension - NHF)
+  const adjustedGross = annualGross - pensionDeduction - nhfDeduction;
   
+  // Step 2: Calculate CRA
+  const cra = calculateCRA(annualGross);
+  
+  // Step 3: Calculate Chargeable Income
+  const chargeableIncome = Math.max(0, adjustedGross - cra);
+  
+  // Step 4: Calculate tax using old bands
   let remainingIncome = chargeableIncome;
-  let totalTax = 0;
+  let calculatedTax = 0;
   
   for (const band of TAX_BANDS_2021) {
     if (remainingIncome <= 0) break;
     
     const taxableInBand = Math.min(remainingIncome, band.threshold);
-    totalTax += taxableInBand * band.rate;
+    calculatedTax += taxableInBand * band.rate;
     remainingIncome -= taxableInBand;
   }
   
-  return totalTax;
+  // Step 5: Apply Minimum Tax Rule (1% of Gross if calculated tax is less)
+  const minimumTax = annualGross * 0.01;
+  const usedMinimumTax = calculatedTax < minimumTax && chargeableIncome > 0;
+  const finalTax = usedMinimumTax ? minimumTax : calculatedTax;
+  
+  return {
+    adjustedGross,
+    cra,
+    chargeableIncome,
+    calculatedTax,
+    minimumTax,
+    finalTax,
+    usedMinimumTax,
+  };
 }
 
 function calculate2026Tax(chargeableIncome: number): { totalTax: number; bands: TaxBand[] } {
   const bands: TaxBand[] = [];
   let remainingIncome = chargeableIncome;
   let totalTax = 0;
-  let cumulativeThreshold = 0;
   
   for (const band of TAX_BANDS_2026) {
     const bandSize = band.threshold === Infinity ? remainingIncome : band.threshold;
@@ -113,7 +161,6 @@ function calculate2026Tax(chargeableIncome: number): { totalTax: number; bands: 
     
     totalTax += taxInBand;
     remainingIncome -= taxableInBand;
-    cumulativeThreshold += bandSize;
     
     if (remainingIncome <= 0) break;
   }
@@ -126,40 +173,49 @@ export function calculateTax(inputs: TaxInputs): TaxResult {
   const annualGross = inputs.isAnnual ? inputs.grossSalary : inputs.grossSalary * 12;
   const monthlyGross = annualGross / 12;
   
-  // Check tax-free threshold
-  if (annualGross <= TAX_FREE_THRESHOLD) {
-    return {
-      annualGross,
-      monthlyGross,
-      pensionDeduction: 0,
-      nhfDeduction: 0,
-      rentRelief: 0,
-      totalDeductions: 0,
-      chargeableIncome: annualGross,
-      annualTax: 0,
-      monthlyTax: 0,
-      annualTakeHome: annualGross,
-      monthlyTakeHome: monthlyGross,
-      taxBands: [],
-      oldLawAnnualTax: calculateOldLawTax(annualGross),
-      taxSavings: calculateOldLawTax(annualGross),
-      effectiveRate: 0,
-      isTaxFree: true,
-    };
-  }
-  
-  // Calculate deductions
+  // Calculate deductions (same for both systems)
   const pensionDeduction = inputs.pensionEnabled ? annualGross * PENSION_RATE : 0;
   const nhfDeduction = inputs.nhfEnabled ? annualGross * NHF_RATE : 0;
   const lifeAssuranceDeduction = inputs.lifeAssuranceEnabled ? annualGross * LIFE_ASSURANCE_RATE : 0;
   
-  // Rent relief: 20% of rent paid, capped at ₦500,000
+  // Rent relief (2026 law only): 20% of rent paid, capped at ₦500,000
   const rentRelief = Math.min(inputs.annualRent * RENT_RELIEF_RATE, RENT_RELIEF_CAP);
   
-  // Total statutory deductions (excluding rent relief for now, as it's applied differently)
+  // Total deductions for 2026 law
   const totalDeductions = pensionDeduction + nhfDeduction + lifeAssuranceDeduction + rentRelief;
   
-  // Chargeable income
+  // Check tax-free threshold for 2026 law
+  if (annualGross <= TAX_FREE_THRESHOLD) {
+    // Calculate old law tax even for tax-free threshold comparison
+    const oldTaxBreakdown = calculateOldLawTax(annualGross, pensionDeduction, nhfDeduction);
+    
+    return {
+      annualGross,
+      monthlyGross,
+      pensionDeduction,
+      nhfDeduction,
+      rentRelief,
+      totalDeductions,
+      chargeableIncome: annualGross,
+      annualTax: 0,
+      monthlyTax: 0,
+      annualTakeHome: annualGross - pensionDeduction - nhfDeduction,
+      monthlyTakeHome: (annualGross - pensionDeduction - nhfDeduction) / 12,
+      taxBands: [],
+      oldLawAnnualTax: oldTaxBreakdown.finalTax,
+      oldLawMonthlyTax: oldTaxBreakdown.finalTax / 12,
+      oldTaxBreakdown,
+      taxSavings: oldTaxBreakdown.finalTax,
+      monthlySavings: oldTaxBreakdown.finalTax / 12,
+      savingsPercentage: oldTaxBreakdown.finalTax > 0 ? 100 : 0,
+      isNewLawBetter: true,
+      effectiveRate: 0,
+      oldEffectiveRate: annualGross > 0 ? (oldTaxBreakdown.finalTax / annualGross) * 100 : 0,
+      isTaxFree: true,
+    };
+  }
+  
+  // Chargeable income for 2026 law
   const chargeableIncome = Math.max(0, annualGross - totalDeductions);
   
   // Calculate 2026 tax
@@ -167,15 +223,23 @@ export function calculateTax(inputs: TaxInputs): TaxResult {
   const monthlyTax = annualTax / 12;
   
   // Calculate old law tax for comparison
-  const oldLawAnnualTax = calculateOldLawTax(chargeableIncome);
-  const taxSavings = Math.max(0, oldLawAnnualTax - annualTax);
+  const oldTaxBreakdown = calculateOldLawTax(annualGross, pensionDeduction, nhfDeduction);
+  const oldLawAnnualTax = oldTaxBreakdown.finalTax;
+  const oldLawMonthlyTax = oldLawAnnualTax / 12;
+  
+  // Calculate savings
+  const taxSavings = oldLawAnnualTax - annualTax;
+  const monthlySavings = taxSavings / 12;
+  const savingsPercentage = oldLawAnnualTax > 0 ? (taxSavings / oldLawAnnualTax) * 100 : 0;
+  const isNewLawBetter = taxSavings >= 0;
   
   // Take home calculations
   const annualTakeHome = annualGross - annualTax - pensionDeduction - nhfDeduction - lifeAssuranceDeduction;
   const monthlyTakeHome = annualTakeHome / 12;
   
-  // Effective tax rate
+  // Effective tax rates
   const effectiveRate = annualGross > 0 ? (annualTax / annualGross) * 100 : 0;
+  const oldEffectiveRate = annualGross > 0 ? (oldLawAnnualTax / annualGross) * 100 : 0;
   
   return {
     annualGross,
@@ -191,8 +255,14 @@ export function calculateTax(inputs: TaxInputs): TaxResult {
     monthlyTakeHome,
     taxBands,
     oldLawAnnualTax,
+    oldLawMonthlyTax,
+    oldTaxBreakdown,
     taxSavings,
+    monthlySavings,
+    savingsPercentage,
+    isNewLawBetter,
     effectiveRate,
+    oldEffectiveRate,
     isTaxFree: false,
   };
 }

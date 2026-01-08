@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Header } from "./Header";
 import { InputForm } from "./InputForm";
 import { ResultCards } from "./ResultCards";
+import { ComparisonCard } from "./ComparisonCard";
 import { TaxBreakdown } from "./TaxBreakdown";
 import { DeductionsSummary } from "./DeductionsSummary";
 import { Footer } from "./Footer";
@@ -30,6 +31,7 @@ export function TaxCalculator() {
           {inputs.grossSalary > 0 && (
             <>
               <ResultCards result={result} />
+              <ComparisonCard result={result} />
               <TaxBreakdown result={result} />
               <DeductionsSummary result={result} />
             </>

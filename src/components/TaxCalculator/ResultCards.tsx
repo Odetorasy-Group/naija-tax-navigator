@@ -1,4 +1,4 @@
-import { Wallet, Receipt, PiggyBank, TrendingDown } from "lucide-react";
+import { Wallet, Receipt, PiggyBank } from "lucide-react";
 import { TaxResult, formatCurrency } from "@/lib/taxCalculations";
 
 interface ResultCardsProps {
@@ -35,7 +35,7 @@ export function ResultCards({ result }: ResultCardsProps) {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-muted-foreground text-sm font-medium mb-1">
-              Monthly Tax
+              Monthly Tax (2026)
             </p>
             <p className="text-xl md:text-2xl font-bold text-foreground">
               {result.isTaxFree ? (
@@ -78,25 +78,6 @@ export function ResultCards({ result }: ResultCardsProps) {
           Pension + NHF contributions
         </p>
       </div>
-
-      {/* Tax Savings Comparison */}
-      {result.taxSavings > 0 && (
-        <div className="sm:col-span-2 stat-card border-success/30 bg-success/5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-success/20 flex items-center justify-center">
-              <TrendingDown className="w-5 h-5 text-success" />
-            </div>
-            <div className="flex-1">
-              <p className="text-success font-semibold text-sm">
-                You're saving {formatCurrency(result.taxSavings / 12)}/month under the new law!
-              </p>
-              <p className="text-muted-foreground text-xs mt-0.5">
-                Annual savings of {formatCurrency(result.taxSavings)} compared to the 2021 tax system
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

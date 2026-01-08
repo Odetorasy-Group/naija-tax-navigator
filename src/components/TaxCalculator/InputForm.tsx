@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Calendar, Home, Briefcase, Heart, Building2 } from "lucide-react";
+import { useState } from "react";
+import { Calendar, Home, Briefcase, Heart, Building2, Shield } from "lucide-react";
 import { TaxInputs } from "@/lib/taxCalculations";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,9 @@ export function InputForm({ inputs, onInputChange }: InputFormProps) {
   );
   const [rentInput, setRentInput] = useState(
     inputs.annualRent > 0 ? inputs.annualRent.toString() : ""
+  );
+  const [lifeInsuranceInput, setLifeInsuranceInput] = useState(
+    (inputs.lifeInsurancePaid || 0) > 0 ? inputs.lifeInsurancePaid!.toString() : ""
   );
 
   const handleSalaryChange = (value: string) => {
@@ -32,6 +35,15 @@ export function InputForm({ inputs, onInputChange }: InputFormProps) {
     onInputChange({
       ...inputs,
       annualRent: cleanValue ? parseInt(cleanValue, 10) : 0,
+    });
+  };
+
+  const handleLifeInsuranceChange = (value: string) => {
+    const cleanValue = value.replace(/[^0-9]/g, "");
+    setLifeInsuranceInput(cleanValue);
+    onInputChange({
+      ...inputs,
+      lifeInsurancePaid: cleanValue ? parseInt(cleanValue, 10) : 0,
     });
   };
 
@@ -121,6 +133,30 @@ export function InputForm({ inputs, onInputChange }: InputFormProps) {
         </div>
         <p className="text-xs text-muted-foreground mt-1.5">
           Relief: 20% of rent, capped at ₦500,000/year
+        </p>
+      </div>
+
+      {/* Life Insurance Paid (Previous Year) */}
+      <div className="mb-5 md:mb-6">
+        <Label className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+          <Shield className="w-4 h-4" />
+          Life Insurance Paid (Previous Year)
+        </Label>
+        <div className="relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+            ₦
+          </span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={formatDisplayValue(lifeInsuranceInput)}
+            onChange={(e) => handleLifeInsuranceChange(e.target.value.replace(/,/g, ""))}
+            placeholder="0"
+            className="input-field pl-8"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground mt-1.5">
+          Deducted from annual income before tax is applied
         </p>
       </div>
 

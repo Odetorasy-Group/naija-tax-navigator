@@ -231,7 +231,7 @@ export default function Auth() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-4">
-          By continuing, you agree to our <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>.
+          By continuing, you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.
         </p>
       </div>
     </div>

@@ -20,7 +20,7 @@ export function StandardCalculator({ inputs, onInputChange }: StandardCalculator
     if (inputs.grossSalary <= 0) return;
     
     const payslipContent = `
-ODETOPRASY TAX SUITE - PAYSLIP
+ODETORASY TAX SUITE - PAYSLIP
 ================================
 Generated: ${new Date().toLocaleDateString()}
 

@@ -15,16 +15,19 @@ interface Employee {
   id: string;
   name: string;
   monthlyGross: number;
+  annualRent: number;
+  lifeInsurance: number;
 }
 
 interface EmployeeWithCalc extends Employee {
   payeTax: number;
   pension: number;
   nhf: number;
+  rentRelief: number;
   netPay: number;
 }
 
-const STORAGE_KEY = "odetoprasy-payroll-employees";
+const STORAGE_KEY = "odetorasy-payroll-employees";
 
 export function PayrollManager() {
   const [employees, setEmployees] = useState<Employee[]>(() => {
@@ -45,16 +48,17 @@ export function PayrollManager() {
 
   const employeesWithCalc: EmployeeWithCalc[] = employees.map((emp) => {
     if (emp.monthlyGross <= 0) {
-      return { ...emp, payeTax: 0, pension: 0, nhf: 0, netPay: 0 };
+      return { ...emp, payeTax: 0, pension: 0, nhf: 0, rentRelief: 0, netPay: 0 };
     }
     
     const result = calculateTax({
       grossSalary: emp.monthlyGross,
       isAnnual: false,
-      annualRent: 0,
+      annualRent: emp.annualRent || 0,
       pensionEnabled: true,
       nhfEnabled: true,
       lifeAssuranceEnabled: false,
+      lifeInsurancePaid: emp.lifeInsurance || 0,
     });
     
     return {
@@ -62,6 +66,7 @@ export function PayrollManager() {
       payeTax: result.monthlyTax,
       pension: result.pensionDeduction / 12,
       nhf: result.nhfDeduction / 12,
+      rentRelief: result.rentRelief / 12,
       netPay: result.monthlyTakeHome,
     };
   });
@@ -82,6 +87,8 @@ export function PayrollManager() {
       id: crypto.randomUUID(),
       name: "",
       monthlyGross: 0,
+      annualRent: 0,
+      lifeInsurance: 0,
     };
     setEmployees([...employees, newEmployee]);
   };
@@ -103,11 +110,23 @@ export function PayrollManager() {
     updateEmployee(id, "monthlyGross", cleanValue ? parseInt(cleanValue, 10) : 0);
   };
 
+  const handleRentChange = (id: string, value: string) => {
+    const cleanValue = value.replace(/[^0-9]/g, "");
+    updateEmployee(id, "annualRent", cleanValue ? parseInt(cleanValue, 10) : 0);
+  };
+
+  const handleInsuranceChange = (id: string, value: string) => {
+    const cleanValue = value.replace(/[^0-9]/g, "");
+    updateEmployee(id, "lifeInsurance", cleanValue ? parseInt(cleanValue, 10) : 0);
+  };
+
   const exportCSV = () => {
-    const headers = ["Employee Name", "Monthly Gross", "PAYE Tax", "Pension", "NHF", "Net Pay"];
+    const headers = ["Employee Name", "Monthly Gross", "Annual Rent", "Life Insurance", "PAYE Tax", "Pension", "NHF", "Net Pay"];
     const rows = employeesWithCalc.map((emp) => [
       emp.name || "Unnamed",
       emp.monthlyGross,
+      emp.annualRent,
+      emp.lifeInsurance,
       Math.round(emp.payeTax),
       Math.round(emp.pension),
       Math.round(emp.nhf),
@@ -117,6 +136,8 @@ export function PayrollManager() {
     const totalsRow = [
       "TOTALS",
       totals.gross,
+      "",
+      "",
       Math.round(totals.tax),
       Math.round(totals.pension),
       Math.round(totals.nhf),
@@ -163,11 +184,13 @@ export function PayrollManager() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[150px]">Name</TableHead>
-                  <TableHead className="min-w-[120px]">Gross</TableHead>
-                  <TableHead className="min-w-[100px]">PAYE Tax</TableHead>
-                  <TableHead className="min-w-[100px]">Pension</TableHead>
-                  <TableHead className="min-w-[100px]">Net Pay</TableHead>
+                  <TableHead className="min-w-[140px]">Name</TableHead>
+                  <TableHead className="min-w-[110px]">Monthly Gross</TableHead>
+                  <TableHead className="min-w-[100px]">Annual Rent</TableHead>
+                  <TableHead className="min-w-[100px]">Life Ins. (Prev Yr)</TableHead>
+                  <TableHead className="min-w-[90px]">PAYE Tax</TableHead>
+                  <TableHead className="min-w-[90px]">Pension</TableHead>
+                  <TableHead className="min-w-[90px]">Net Pay</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -195,6 +218,36 @@ export function PayrollManager() {
                           onChange={(e) => handleGrossChange(emp.id, e.target.value.replace(/,/g, ""))}
                           placeholder="0"
                           className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 pl-4 text-sm font-medium"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="relative">
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                          ₦
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={emp.annualRent > 0 ? emp.annualRent.toLocaleString("en-NG") : ""}
+                          onChange={(e) => handleRentChange(emp.id, e.target.value.replace(/,/g, ""))}
+                          placeholder="0"
+                          className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 pl-4 text-sm"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="relative">
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                          ₦
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={emp.lifeInsurance > 0 ? emp.lifeInsurance.toLocaleString("en-NG") : ""}
+                          onChange={(e) => handleInsuranceChange(emp.id, e.target.value.replace(/,/g, ""))}
+                          placeholder="0"
+                          className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 pl-4 text-sm"
                         />
                       </div>
                     </TableCell>

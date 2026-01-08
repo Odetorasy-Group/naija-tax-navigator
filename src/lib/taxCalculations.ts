@@ -5,6 +5,7 @@ export interface TaxInputs {
   pensionEnabled: boolean;
   nhfEnabled: boolean;
   lifeAssuranceEnabled: boolean;
+  lifeInsurancePaid?: number; // Life insurance paid in previous year (deducted before tax)
 }
 
 export interface TaxBand {
@@ -33,6 +34,7 @@ export interface TaxResult {
   pensionDeduction: number;
   nhfDeduction: number;
   rentRelief: number;
+  lifeInsuranceDeduction: number;
   totalDeductions: number;
   
   // Tax calculations
@@ -178,11 +180,14 @@ export function calculateTax(inputs: TaxInputs): TaxResult {
   const nhfDeduction = inputs.nhfEnabled ? annualGross * NHF_RATE : 0;
   const lifeAssuranceDeduction = inputs.lifeAssuranceEnabled ? annualGross * LIFE_ASSURANCE_RATE : 0;
   
+  // Life insurance paid in previous year (deducted from income before tax)
+  const lifeInsuranceDeduction = inputs.lifeInsurancePaid || 0;
+  
   // Rent relief (2026 law only): 20% of rent paid, capped at ₦500,000
   const rentRelief = Math.min(inputs.annualRent * RENT_RELIEF_RATE, RENT_RELIEF_CAP);
   
-  // Total deductions for 2026 law
-  const totalDeductions = pensionDeduction + nhfDeduction + lifeAssuranceDeduction + rentRelief;
+  // Total deductions for 2026 law (includes life insurance paid in previous year)
+  const totalDeductions = pensionDeduction + nhfDeduction + lifeAssuranceDeduction + rentRelief + lifeInsuranceDeduction;
   
   // Check tax-free threshold for 2026 law
   if (annualGross <= TAX_FREE_THRESHOLD) {
@@ -195,6 +200,7 @@ export function calculateTax(inputs: TaxInputs): TaxResult {
       pensionDeduction,
       nhfDeduction,
       rentRelief,
+      lifeInsuranceDeduction,
       totalDeductions,
       chargeableIncome: annualGross,
       annualTax: 0,
@@ -247,6 +253,7 @@ export function calculateTax(inputs: TaxInputs): TaxResult {
     pensionDeduction,
     nhfDeduction,
     rentRelief,
+    lifeInsuranceDeduction,
     totalDeductions,
     chargeableIncome,
     annualTax,

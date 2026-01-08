@@ -12,12 +12,12 @@ export function SuiteHeader({ monthlyTakeHome }: SuiteHeaderProps) {
       <div className="flex items-center gap-3">
         <img 
           src={logo} 
-          alt="Odetoprasy Tax Suite" 
+          alt="Odetorasy Tax Suite" 
           className="w-12 h-12 md:w-14 md:h-14 object-contain"
         />
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-foreground">
-            Odetoprasy Tax Suite
+            Odetorasy Tax Suite
           </h1>
           <div className="flex items-center gap-1.5 text-xs md:text-sm text-muted-foreground">
             <Shield className="w-3 h-3 text-primary" />

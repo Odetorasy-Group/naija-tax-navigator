@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Home, Briefcase, Heart, Building2, Shield } from "lucide-react";
+import { Calendar, Home, Briefcase, Building2, Shield } from "lucide-react";
 import { TaxInputs } from "@/lib/taxCalculations";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -205,24 +205,6 @@ export function InputForm({ inputs, onInputChange }: InputFormProps) {
             />
           </div>
 
-          {/* Life Assurance Toggle */}
-          <div className="flex items-center justify-between p-3 md:p-4 rounded-xl bg-secondary/50 border border-border">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Heart className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">Life Assurance</p>
-                <p className="text-xs text-muted-foreground">Premium deduction</p>
-              </div>
-            </div>
-            <Switch
-              checked={inputs.lifeAssuranceEnabled}
-              onCheckedChange={(checked) =>
-                onInputChange({ ...inputs, lifeAssuranceEnabled: checked })
-              }
-            />
-          </div>
         </div>
       </div>
     </div>

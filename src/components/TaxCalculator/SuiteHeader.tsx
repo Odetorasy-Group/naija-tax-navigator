@@ -1,6 +1,6 @@
 import { Shield, Wallet } from "lucide-react";
 import { formatCurrency } from "@/lib/taxCalculations";
-import logo from "@/assets/odetorasy-logo.png";
+import logo from "@/assets/Tax Suite.jpg";
 import { UserMenu } from "./UserMenu";
 
 interface SuiteHeaderProps {

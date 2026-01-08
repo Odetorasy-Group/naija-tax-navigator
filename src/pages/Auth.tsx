@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
-import logo from "@/assets/odetorasy-logo.png";
+import logo from "@/assets/Tax Suite.jpg";
 import { z } from "zod";
 
 const authSchema = z.object({
@@ -231,7 +231,7 @@ export default function Auth() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-4">
-          By continuing, you agree to our Terms of Service
+          By continuing, you agree to our <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>.
         </p>
       </div>
     </div>

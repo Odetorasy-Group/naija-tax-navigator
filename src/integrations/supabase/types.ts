@@ -105,7 +105,11 @@ export type Database = {
           email: string
           id: string
           last_payment_date: string | null
+          plan_id: string | null
+          plan_type: string | null
+          subscription_end_date: string | null
           subscription_status: string
+          transaction_id: string | null
           updated_at: string
         }
         Insert: {
@@ -113,7 +117,11 @@ export type Database = {
           email: string
           id: string
           last_payment_date?: string | null
+          plan_id?: string | null
+          plan_type?: string | null
+          subscription_end_date?: string | null
           subscription_status?: string
+          transaction_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -121,7 +129,11 @@ export type Database = {
           email?: string
           id?: string
           last_payment_date?: string | null
+          plan_id?: string | null
+          plan_type?: string | null
+          subscription_end_date?: string | null
           subscription_status?: string
+          transaction_id?: string | null
           updated_at?: string
         }
         Relationships: []

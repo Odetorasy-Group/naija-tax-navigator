@@ -7,6 +7,10 @@ interface Profile {
   email: string;
   subscription_status: "free" | "pro";
   last_payment_date: string | null;
+  plan_type: "monthly" | "yearly" | null;
+  subscription_end_date: string | null;
+  transaction_id: string | null;
+  plan_id: string | null;
 }
 
 interface AuthContextType {
@@ -15,11 +19,12 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   isPro: boolean;
+  isExpired: boolean;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  upgradeToPro: () => Promise<void>;
+  upgradeToPro: (planType: "monthly" | "yearly", transactionId: string, planId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -107,14 +112,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const upgradeToPro = async () => {
+  const upgradeToPro = async (
+    planType: "monthly" | "yearly",
+    transactionId: string,
+    planId: string
+  ) => {
     if (!user) return;
+    
+    const now = new Date();
+    const daysToAdd = planType === "yearly" ? 365 : 30;
+    const subscriptionEndDate = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
     
     const { error } = await supabase
       .from("profiles")
       .update({
         subscription_status: "pro",
-        last_payment_date: new Date().toISOString(),
+        last_payment_date: now.toISOString(),
+        plan_type: planType,
+        subscription_end_date: subscriptionEndDate.toISOString(),
+        transaction_id: transactionId,
+        plan_id: planId,
       })
       .eq("id", user.id);
     
@@ -123,7 +140,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const isPro = profile?.subscription_status === "pro";
+  // Check if subscription is active and not expired
+  const isExpired = (() => {
+    if (!profile?.subscription_end_date) return false;
+    return new Date(profile.subscription_end_date) < new Date();
+  })();
+
+  const isPro = profile?.subscription_status === "pro" && !isExpired;
 
   return (
     <AuthContext.Provider
@@ -133,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         isPro,
+        isExpired,
         signUp,
         signIn,
         signOut,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Plus, Trash2, Download, AlertCircle, FileText } from "lucide-react";
+import { Users, Plus, Trash2, Download, AlertCircle } from "lucide-react";
 import { calculateTax, formatCurrency } from "@/lib/taxCalculations";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { UpgradeButton } from "./UpgradeButton";
 import { ProFeatureGate } from "./ProFeatureGate";
+import { BulkUpload } from "./BulkUpload";
 import { useToast } from "@/hooks/use-toast";
 
 interface Employee {
@@ -282,8 +283,21 @@ export function PayrollManager() {
     );
   }
 
+  const refetchEmployees = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("employees")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+    if (data) setEmployees(data);
+  };
+
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* Bulk Upload Section */}
+      <BulkUpload onUploadComplete={refetchEmployees} />
+
       {/* Upgrade Banner for Free Users */}
       {!isPro && <UpgradeButton variant="banner" />}
 

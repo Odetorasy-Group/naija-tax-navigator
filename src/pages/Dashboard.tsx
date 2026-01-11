@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Wallet, 
   Home, 
@@ -8,7 +8,9 @@ import {
   TrendingUp,
   Calculator,
   Users,
-  ChevronRight
+  ChevronRight,
+  LogIn,
+  Save
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,21 +30,29 @@ import {
 } from "recharts";
 
 export default function Dashboard() {
-  const { user, isPro, profile } = useAuth();
+  const { user, isPro, profile, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [isAnnual, setIsAnnual] = useState(false);
   const [employeeCount, setEmployeeCount] = useState(0);
   const [totalPayroll, setTotalPayroll] = useState(0);
   const [savedSalary, setSavedSalary] = useState(0);
   const [rentPaid, setRentPaid] = useState(0);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+    
     if (user) {
       fetchDashboardData();
+    } else {
+      setDataLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const fetchDashboardData = async () => {
     if (!user) return;
+
+    setDataLoading(true);
 
     // Fetch employees
     const { data: employees } = await supabase
@@ -65,8 +75,13 @@ export default function Dashboard() {
 
     if (settings) {
       setRentPaid(Number(settings.annual_rent) || 0);
+      setSavedSalary(Number((settings as any).saved_salary) || 0);
     }
+
+    setDataLoading(false);
   };
+
+  const displayName = profile?.display_name || profile?.email?.split("@")[0] || "User";
 
   const defaultInputs: TaxInputs = {
     grossSalary: savedSalary || 500000,
@@ -99,12 +114,78 @@ export default function Dashboard() {
   nextTaxDue.setMonth(Math.ceil((nextTaxDue.getMonth() + 1) / 3) * 3);
   nextTaxDue.setDate(21);
 
+  // Loading state
+  if (authLoading || dataLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  // Not signed in - show sign in prompt
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-[500px] animate-fade-in">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <LogIn className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="font-serif text-2xl md:text-3xl font-semibold text-foreground mb-3">
+            Welcome to Odetorasy Tax Suite
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            Sign in to access your personalized tax dashboard, track your take-home pay, and manage payroll.
+          </p>
+          <Button onClick={() => navigate("/auth")} size="lg" className="gap-2">
+            <LogIn className="w-4 h-4" />
+            Sign In to Get Started
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Signed in but no salary saved - show empty state
+  if (savedSalary === 0) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <h1 className="font-serif text-2xl md:text-3xl font-semibold text-foreground">
+            Welcome, {displayName}!
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Let's set up your tax dashboard
+          </p>
+        </div>
+
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center max-w-md mx-auto px-6">
+            <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-6">
+              <Save className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="font-serif text-xl font-semibold text-foreground mb-3">
+              No Salary Data Yet
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Use the Quick Calculator to compute your tax, then save your salary to see your personalized dashboard with take-home trends, rent relief progress, and tax due dates.
+            </p>
+            <Button onClick={() => navigate("/calculator")} size="lg" className="gap-2">
+              <Calculator className="w-4 h-4" />
+              Go to Calculator
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Welcome Header */}
       <div>
         <h1 className="font-serif text-2xl md:text-3xl font-semibold text-foreground">
-          Welcome back{profile?.email ? `, ${profile.email.split("@")[0]}` : ""}
+          Welcome back, {displayName}
         </h1>
         <p className="text-muted-foreground mt-1">
           Here's your tax overview for {new Date().toLocaleDateString("en-NG", { month: "long", year: "numeric" })}

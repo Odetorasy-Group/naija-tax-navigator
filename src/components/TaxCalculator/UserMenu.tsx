@@ -9,11 +9,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Crown, Settings } from "lucide-react";
-import { UpgradeButton } from "./UpgradeButton";
+import { User, LogOut, Settings } from "lucide-react";
 
 export function UserMenu() {
-  const { user, profile, signOut, isPro } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -23,6 +22,8 @@ export function UserMenu() {
     setIsLoading(false);
     navigate("/auth");
   };
+
+  const displayName = profile?.display_name || profile?.email?.split("@")[0] || "Account";
 
   if (!user) {
     return (
@@ -43,39 +44,20 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-            {isPro ? (
-              <Crown className="w-3.5 h-3.5 text-primary" />
-            ) : (
-              <User className="w-3.5 h-3.5 text-primary" />
-            )}
+            <User className="w-3.5 h-3.5 text-primary" />
           </div>
           <span className="hidden sm:inline max-w-[120px] truncate">
-            {profile?.email?.split("@")[0] || "Account"}
+            {displayName}
           </span>
-          {isPro && (
-            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
-              PRO
-            </span>
-          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <div className="px-2 py-1.5">
-          <p className="text-sm font-medium truncate">{profile?.email}</p>
-          <p className="text-xs text-muted-foreground">
-            {isPro ? "Pro Plan" : "Free Plan"}
-          </p>
+          <p className="text-sm font-medium truncate">{displayName}</p>
+          <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
         </div>
         <DropdownMenuSeparator />
-        {!isPro && (
-          <>
-            <div className="p-2">
-              <UpgradeButton variant="compact" />
-            </div>
-            <DropdownMenuSeparator />
-          </>
-        )}
-        <DropdownMenuItem disabled>
+        <DropdownMenuItem onClick={() => navigate("/settings")}>
           <Settings className="w-4 h-4 mr-2" />
           Settings
         </DropdownMenuItem>

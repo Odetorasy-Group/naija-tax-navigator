@@ -6,7 +6,6 @@ import {
   Users, 
   Globe, 
   Settings,
-  Crown,
   Shield
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -32,32 +31,27 @@ const mainNavItems = [
     title: "Dashboard", 
     url: "/dashboard", 
     icon: LayoutDashboard,
-    pro: false 
   },
   { 
     title: "Quick Calculator", 
     url: "/calculator", 
     icon: Calculator,
-    pro: false 
   },
   { 
     title: "Income Targeter", 
     url: "/targeter", 
     icon: Target,
-    pro: false 
   },
   { 
     title: "Payroll Manager", 
     url: "/payroll", 
     icon: Users,
-    pro: false,
-    proBadge: "Bulk Upload"
+    badge: "3 Staff"
   },
   { 
     title: "Global View", 
     url: "/global", 
     icon: Globe,
-    pro: false 
   },
 ];
 
@@ -65,9 +59,11 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { isPro, user } = useAuth();
+  const { profile } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const displayName = profile?.display_name || profile?.email?.split("@")[0];
 
   return (
     <Sidebar 
@@ -121,9 +117,9 @@ export function AppSidebar() {
                       {!collapsed && (
                         <span className="flex-1">{item.title}</span>
                       )}
-                      {!collapsed && item.proBadge && !isPro && (
-                        <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                          Pro
+                      {!collapsed && item.badge && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          {item.badge}
                         </span>
                       )}
                     </NavLink>
@@ -157,12 +153,12 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
         
-        {!collapsed && isPro && (
-          <div className="mx-3 mt-3 p-3 rounded-md bg-primary/10 border border-primary/20">
-            <div className="flex items-center gap-2">
-              <Crown className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Pro Plan</span>
-            </div>
+        {!collapsed && displayName && (
+          <div className="mx-3 mt-3 p-3 rounded-md bg-accent/50">
+            <p className="text-sm font-medium text-foreground truncate">
+              {displayName}
+            </p>
+            <p className="text-xs text-muted-foreground">Free Plan</p>
           </div>
         )}
       </SidebarFooter>

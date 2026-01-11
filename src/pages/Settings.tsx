@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Lock, Palette, Crown, LogOut, Shield } from "lucide-react";
+import { User, Lock, Palette, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,26 +10,37 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { UpgradeButton } from "@/components/TaxCalculator/UpgradeButton";
 
 export default function Settings() {
-  const { user, profile, signOut, isPro } = useAuth();
+  const { user, profile, signOut, updateDisplayName } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   
-  const [displayName, setDisplayName] = useState(profile?.email?.split("@")[0] || "");
-  const [currentPassword, setCurrentPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  // Initialize display name when profile loads
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.display_name || profile.email?.split("@")[0] || "");
+    }
+  }, [profile]);
+
   const handleUpdateProfile = async () => {
-    if (!user) return;
+    if (!user || !displayName.trim()) return;
     setIsUpdating(true);
     
-    // For now, display name is stored locally or we could add to profiles table
-    toast.success("Profile updated successfully");
+    const { error } = await updateDisplayName(displayName.trim());
+    
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Display name updated successfully");
+    }
+    
     setIsUpdating(false);
   };
 
@@ -57,7 +68,6 @@ export default function Settings() {
       toast.error(error.message);
     } else {
       toast.success("Password updated successfully");
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     }
@@ -90,36 +100,6 @@ export default function Settings() {
         <p className="text-muted-foreground mt-1">
           Manage your account settings and preferences
         </p>
-      </div>
-
-      {/* Subscription Status */}
-      <div className="card-bento">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Crown className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground">Subscription</h3>
-              <p className="text-sm text-muted-foreground">
-                {isPro ? "Pro Plan" : "Free Plan"}
-              </p>
-            </div>
-          </div>
-          {isPro ? (
-            <div className="trust-badge">
-              <Shield className="w-3.5 h-3.5" />
-              Active
-            </div>
-          ) : (
-            <UpgradeButton variant="compact" />
-          )}
-        </div>
-        {isPro && profile?.subscription_end_date && (
-          <p className="text-xs text-muted-foreground">
-            Renews on {new Date(profile.subscription_end_date).toLocaleDateString("en-NG")}
-          </p>
-        )}
       </div>
 
       <Separator />
@@ -159,11 +139,14 @@ export default function Settings() {
               placeholder="Your display name"
               className="mt-1.5"
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              This name will be shown throughout the app
+            </p>
           </div>
 
           <Button 
             onClick={handleUpdateProfile} 
-            disabled={isUpdating}
+            disabled={isUpdating || !displayName.trim()}
             className="w-full sm:w-auto"
           >
             {isUpdating ? "Updating..." : "Update Profile"}

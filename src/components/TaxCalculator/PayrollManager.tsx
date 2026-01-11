@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Plus, Trash2, Download, AlertCircle } from "lucide-react";
+import { Users, Plus, Trash2, Download, AlertCircle, ExternalLink } from "lucide-react";
 import { calculateTax, formatCurrency } from "@/lib/taxCalculations";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { UpgradeButton } from "./UpgradeButton";
-import { ProFeatureGate } from "./ProFeatureGate";
 import { BulkUpload } from "./BulkUpload";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,7 +36,7 @@ interface EmployeeWithCalc extends Employee {
 const FREE_EMPLOYEE_LIMIT = 3;
 
 export function PayrollManager() {
-  const { user, isPro, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +73,7 @@ export function PayrollManager() {
     fetchEmployees();
   }, [user, authLoading, toast]);
 
-  const canAddEmployee = isPro || employees.length < FREE_EMPLOYEE_LIMIT;
+  const canAddEmployee = employees.length < FREE_EMPLOYEE_LIMIT;
 
   const employeesWithCalc: EmployeeWithCalc[] = employees.map((emp) => {
     if (emp.monthly_gross <= 0) {
@@ -126,8 +124,7 @@ export function PayrollManager() {
     if (!canAddEmployee) {
       toast({
         title: "Limit Reached",
-        description: "Free plan is limited to 3 employees. Upgrade to Pro for unlimited.",
-        variant: "destructive",
+        description: "Free plan is limited to 3 employees. Check out PayShield Nigeria for enterprise payroll.",
       });
       return;
     }
@@ -213,15 +210,6 @@ export function PayrollManager() {
   };
 
   const exportCSV = () => {
-    if (!isPro) {
-      toast({
-        title: "Pro Feature",
-        description: "Bulk CSV export is available on the Pro plan.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const headers = ["Employee Name", "Monthly Gross", "Annual Rent", "Life Insurance", "PAYE Tax", "Pension", "NHF", "Net Pay"];
     const rows = employeesWithCalc.map((emp) => [
       emp.full_name || "Unnamed",
@@ -298,17 +286,36 @@ export function PayrollManager() {
       {/* Bulk Upload Section */}
       <BulkUpload onUploadComplete={refetchEmployees} />
 
-      {/* Upgrade Banner for Free Users */}
-      {!isPro && <UpgradeButton variant="banner" />}
-
-      {/* Free Tier Limit Warning */}
-      {!isPro && employees.length >= FREE_EMPLOYEE_LIMIT && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-warning/10 border border-warning/20 text-warning">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          <p className="text-sm">
-            You've reached the free plan limit of {FREE_EMPLOYEE_LIMIT} employees.
-            Upgrade to Pro for unlimited employees.
-          </p>
+      {/* Free Tier Limit - PayShield Promo */}
+      {employees.length >= FREE_EMPLOYEE_LIMIT && (
+        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground mb-1">
+                Need More Employees?
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                This free tool supports up to {FREE_EMPLOYEE_LIMIT} employees. For enterprise payroll, 
+                compliance automation, and unlimited staff management, check out <strong>PayShield Nigeria</strong> — 
+                our comprehensive payroll solution for SMEs and corporations.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => toast({
+                  title: "Coming Soon!",
+                  description: "PayShield Nigeria is launching soon. Stay tuned for enterprise-grade payroll management.",
+                })}
+              >
+                Learn About PayShield
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -317,11 +324,9 @@ export function PayrollManager() {
           <h2 className="text-lg md:text-xl font-semibold text-foreground flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
             Employee Payroll
-            {!isPro && (
-              <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
-                {employees.length}/{FREE_EMPLOYEE_LIMIT}
-              </span>
-            )}
+            <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
+              {employees.length}/{FREE_EMPLOYEE_LIMIT}
+            </span>
           </h2>
           <Button
             onClick={addEmployee}
@@ -463,21 +468,12 @@ export function PayrollManager() {
             </div>
           </div>
 
-          {/* Export Buttons */}
+          {/* Export Button */}
           <div className="flex gap-3">
-            {isPro ? (
-              <Button onClick={exportCSV} variant="outline" className="flex-1 gap-2">
-                <Download className="w-4 h-4" />
-                Export Payroll CSV
-              </Button>
-            ) : (
-              <ProFeatureGate feature="Bulk CSV export requires Pro plan">
-                <Button variant="outline" className="flex-1 gap-2" disabled>
-                  <Download className="w-4 h-4" />
-                  Export Payroll CSV
-                </Button>
-              </ProFeatureGate>
-            )}
+            <Button onClick={exportCSV} variant="outline" className="flex-1 gap-2">
+              <Download className="w-4 h-4" />
+              Export Payroll CSV
+            </Button>
           </div>
         </>
       )}

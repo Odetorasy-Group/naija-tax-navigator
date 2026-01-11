@@ -68,6 +68,7 @@ export type Database = {
           default_nhf_rate: number
           default_pension_rate: number
           id: string
+          saved_salary: number
           updated_at: string
           user_id: string
         }
@@ -77,6 +78,7 @@ export type Database = {
           default_nhf_rate?: number
           default_pension_rate?: number
           id?: string
+          saved_salary?: number
           updated_at?: string
           user_id: string
         }
@@ -86,6 +88,7 @@ export type Database = {
           default_nhf_rate?: number
           default_pension_rate?: number
           id?: string
+          saved_salary?: number
           updated_at?: string
           user_id?: string
         }
@@ -102,6 +105,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          display_name: string | null
           email: string
           id: string
           last_payment_date: string | null
@@ -114,6 +118,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           email: string
           id: string
           last_payment_date?: string | null
@@ -126,6 +131,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           email?: string
           id?: string
           last_payment_date?: string | null

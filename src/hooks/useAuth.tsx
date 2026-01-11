@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface Profile {
   id: string;
   email: string;
+  display_name: string | null;
   subscription_status: "free" | "pro";
   last_payment_date: string | null;
   plan_type: "monthly" | "yearly" | null;
@@ -24,6 +25,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateDisplayName: (name: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -111,6 +113,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateDisplayName = async (name: string) => {
+    if (!user) return { error: new Error("Not authenticated") };
+    
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: name })
+      .eq("id", user.id);
+    
+    if (!error) {
+      setProfile((prev) => prev ? { ...prev, display_name: name } : null);
+    }
+    
+    return { error: error as Error | null };
+  };
+
   // Check if subscription is active and not expired
   const isExpired = (() => {
     if (!profile?.subscription_end_date) return false;
@@ -132,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signOut,
         refreshProfile,
+        updateDisplayName,
       }}
     >
       {children}
